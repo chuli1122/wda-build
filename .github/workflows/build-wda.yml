@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest  # GitHub 提供的 Mac runner，自带最新 Xcode
+    runs-on: macos-14  # Xcode 15.x + iOS 17.x SDK (公开版, 不是 macos-latest 的 .internal SDK)
     steps:
       - name: Checkout appium/WebDriverAgent
         uses: actions/checkout@v4
@@ -15,8 +15,11 @@ jobs:
           repository: appium/WebDriverAgent
           ref: master
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Show Xcode + SDK version
+        run: |
+          xcodebuild -version
+          echo "---"
+          xcodebuild -showsdks | grep -i iphone
 
       - name: Build WDA (unsigned)
         run: |
