@@ -37,14 +37,30 @@ jobs:
           # 删 dSYM (sideloadly 不接受)
           find WebDriverAgentRunner-Runner.app -name "*.dSYM" -exec rm -rf {} +
 
-          # ad-hoc 签整个 app + 内嵌 framework + plugin (sideloadly 需要至少 ad-hoc 签名作为锚点)
-          codesign --force --sign - --deep --timestamp=none WebDriverAgentRunner-Runner.app
+          APP="WebDriverAgentRunner-Runner.app"
+
+          # codesign --deep 不会进 PlugIns/*.xctest 里去签, 必须手动从内向外:
+          # 1. .xctest 内嵌的 framework
+          codesign --force --sign - --timestamp=none \
+            "$APP/PlugIns/WebDriverAgentRunner.xctest/Frameworks/WebDriverAgentLib.framework"
+
+          # 2. .xctest bundle 自己
+          codesign --force --sign - --timestamp=none \
+            "$APP/PlugIns/WebDriverAgentRunner.xctest"
+
+          # 3. .app 主体 + 外层 Frameworks (--deep 对外层 Frameworks 是 OK 的)
+          codesign --force --sign - --deep --timestamp=none "$APP"
 
           # 验证签名
-          codesign -dv WebDriverAgentRunner-Runner.app 2>&1 || true
+          echo "=== .app signature ==="
+          codesign -dv "$APP" 2>&1 || true
+          echo "=== .xctest signature ==="
+          codesign -dv "$APP/PlugIns/WebDriverAgentRunner.xctest" 2>&1 || true
+          echo "=== WebDriverAgentLib.framework signature ==="
+          codesign -dv "$APP/PlugIns/WebDriverAgentRunner.xctest/Frameworks/WebDriverAgentLib.framework" 2>&1 || true
 
           mkdir -p Payload
-          cp -r WebDriverAgentRunner-Runner.app Payload/
+          cp -r "$APP" Payload/
           zip -ry WebDriverAgentRunner.ipa Payload/
           ls -la WebDriverAgentRunner.ipa
 
