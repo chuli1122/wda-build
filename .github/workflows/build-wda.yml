@@ -21,6 +21,14 @@ jobs:
           echo "---"
           xcodebuild -showsdks | grep -i iphone
 
+      - name: Patch WDA to bind 0.0.0.0 (all interfaces)
+        run: |
+          # 让 WDA HTTP 服务器监听所有网络接口，而不是只绑 WiFi IP 或 localhost
+          sed -i '' 's/bindingIP ?: (\[XCUIDevice sharedDevice\].fb_wifiIPAddress ?: @"127.0.0.1")/@"0.0.0.0"/' \
+            WebDriverAgentLib/Routing/FBWebServer.m
+          echo "=== Patched FBWebServer.m ==="
+          grep -n '0\.0\.0\.0\|serverHost' WebDriverAgentLib/Routing/FBWebServer.m || true
+
       - name: Build WDA (unsigned)
         run: |
           mkdir -p build
